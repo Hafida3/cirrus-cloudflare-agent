@@ -13,7 +13,7 @@
 
 It demonstrates that you can build a complete, production-grade application — with persistent memory, real-time AI responses, live data feeds, and a dynamic frontend — using only Cloudflare products.
 
-Cirrus is also a multilingual Cloudflare expert that speaks EN, FR, ES, PT, ZH (中文), and JA (日本語). It knows every product, every use case, and every reason your infrastructure could be faster, safer, and smarter.
+Cirrus is also a multilingual Cloudflare expert that speaks EN, FR, ES, PT, ZH (中文), and JA (日本語). Its system prompt contains deep technical knowledge of 30+ Cloudflare products — spanning the AI platform (Workers AI, AI Gateway, AI Search, Vectorize, Agents SDK, AutoRAG, Browser Rendering, MCP, Workflows, Durable Objects), security (WAF, DDoS, Bot Management, Page Shield, Zero Trust, Turnstile, Rate Limiting, API Shield, Magic Transit), performance (CDN, Argo, Image Optimization, Waiting Room), and the full developer platform (Workers, Pages, R2, D1, KV, Queues, Hyperdrive, Web3) — all with accurate use cases injected at runtime.
 
 ---
 
@@ -27,59 +27,6 @@ Cirrus is also a multilingual Cloudflare expert that speaks EN, FR, ES, PT, ZH (
 | **AI Gateway** | All Workers AI requests routed through it. Handles caching, request logging, and cost monitoring. | id: `default` · Cache TTL: 3600s |
 | **Workers KV** | Persistent cross-session conversation memory per user (UUID-keyed). | Binding: `CACHE` · TTL: 7 days · Stores last 3 turns as JSON |
 | **Cloudflare DNS** | Custom domain routing. CNAME auto-created when adding domain in Pages dashboard. | Free |
-
----
-
-## Cloudflare Products — In the AI Knowledge Base
-
-Cirrus's system prompt contains deep technical knowledge of the full Cloudflare stack. These products are actively recommended, explained, and compared during conversations, audits, and calculator sessions.
-
-### AI Platform
-
-| Product | Role |
-|---|---|
-| **Workers AI** | Edge inference. 50+ models. Pay only for CPU time (not wall time) — critical for agentic workloads. |
-| **AI Gateway** | Universal proxy for any AI provider (OpenAI, Anthropic, Workers AI). Caching, logging, rate limiting, fallback. |
-| **AI Search (Beta)** | Managed RAG-as-a-service. Connect a website or R2 bucket → semantic search with no infrastructure. Integrates natively with Vectorize, R2, AI Gateway, Browser Rendering. |
-| **Vectorize** | Vector database for semantic search and RAG pipelines. Integrates with Workers AI and AI Search. |
-| **Agents SDK** | Build autonomous AI agents with memory, tool calling, scheduling. Built on Durable Objects + Workers. WebSocket hibernation = zero cost when idle. |
-| **AutoRAG** | Automatic RAG pipelines from R2 documents. |
-| **Browser Rendering** | Headless browser for AI agents to interact with websites. |
-| **MCP Servers** | Model Context Protocol — connect agents to any external API, hosted on Workers. |
-| **Workflows** | Durable multi-step AI pipelines with automatic retry per step. |
-| **Durable Objects** | Stateful serverless — backbone of the Agents SDK. |
-
-### Security
-
-| Product | Role |
-|---|---|
-| **DDoS Protection** | Unmetered, automatic, always-on. 321 Tbps+ network capacity. |
-| **WAF** | Web Application Firewall. Managed rules (Pro), custom rules (Business), unlimited (Enterprise). |
-| **Bot Management** | ML-based bot detection. Stops credential stuffing, scraping, fake traffic. |
-| **Page Shield** | Detects malicious JS injected via third-party scripts (supply chain attacks). |
-| **Zero Trust / SASE** | Cloudflare Access + Tunnel + WARP. Replaces VPN. Free up to 50 users. |
-| **Magic Transit** | Network-layer DDoS protection for enterprise IP infrastructure. |
-| **Email Security** | Anti-phishing and malware protection. |
-| **Turnstile** | Privacy-first CAPTCHA alternative. No user tracking. |
-| **Rate Limiting** | API and login page protection. |
-| **API Shield** | Automatic API discovery, schema validation, and protection. |
-| **Agile SASE Platform** | Unified network security and connectivity. |
-
-### Performance & Developer Platform
-
-| Product | Role |
-|---|---|
-| **CDN** | 330+ datacenters, sub-10ms DNS, automatic caching. |
-| **Argo Smart Routing** | Intelligent routing avoiding congested internet paths. ~30% latency reduction. |
-| **Image Optimization** | Polish + Mirage. Auto-compress, resize, WebP conversion. |
-| **Load Balancing** | Traffic distribution with real-time health checks. |
-| **Waiting Room** | Virtual queue for traffic spikes. |
-| **R2** | S3-compatible object storage. Zero egress fees. |
-| **D1** | Serverless SQLite at the edge. |
-| **KV** | Global key-value store. Ultra-fast reads everywhere. |
-| **Queues** | Async message queue for background processing. |
-| **Hyperdrive** | Connection pooling for Workers → existing Postgres/MySQL databases. |
-| **Web3** | IPFS and Ethereum gateways at the edge. |
 
 ---
 
@@ -107,7 +54,7 @@ Cirrus's system prompt contains deep technical knowledge of the full Cloudflare 
 │  │  Ask     │ │ Products │ │ Calculator │ │    Audit    │  │
 │  │ Cirrus   │ │ Catalog  │ │  + AI opps │ │    News     │  │
 │  └──────────┘ └──────────┘ └────────────┘ └─────────────┘  │
-│              + Mission Control (hidden · #csm-cirrus-internal)│
+│         + Mission Control (hidden · #csm-cirrus-internal)    │
 └─────────────────────────┬────────────────────────────────────┘
                           │ fetch()
           ┌───────────────┴────────────────┐
@@ -119,9 +66,9 @@ Cirrus's system prompt contains deep technical knowledge of the full Cloudflare 
 │  POST / (chat)                      GET / (news)             │
 │  ├─ Read KV memory (userId)         ├─ Fetch CF Blog RSS     │
 │  ├─ Build dynamic system prompt     ├─ Fetch CF Changelog RSS│
-│  │   · Full product knowledge base  └─ Return structured JSON│
-│  │   · Live UTC timestamp                (title, date, desc, │
-│  │   · userName + detected language       source, link)      │
+│  │   · 30+ product knowledge base   └─ Return structured JSON│
+│  │   · Live UTC timestamp                                    │
+│  │   · userName + detected language                          │
 │  ├─ Route through AI Gateway                                 │
 │  ├─ Call Workers AI (LLM)                                    │
 │  └─ Write updated history to KV                              │
@@ -135,7 +82,7 @@ Cirrus's system prompt contains deep technical knowledge of the full Cloudflare 
 │  ┌────────────────────────────────────────────────────────┐  │
 │  │                    Workers AI                          │  │
 │  │  @cf/meta/llama-3.3-70b-instruct-fp8-fast              │  │
-│  │  System prompt: product catalog + UTC time + userName  │  │
+│  │  System prompt: product knowledge + UTC time + userName│  │
 │  │  Conversation history: last 3 turns from KV            │  │
 │  └────────────────────────────────────────────────────────┘  │
 │                                                              │
@@ -198,7 +145,7 @@ Cirrus's system prompt contains deep technical knowledge of the full Cloudflare 
 - `history.pushState()` on every section change
 - `popstate` listener for browser back/forward
 - Section hash restored on page reload
-- Clean URL on home: `#agent` is replaced with empty string
+- Clean URL on home: `#agent` replaced with empty string
 
 ### Mission Control (Hidden)
 - URL: `focuseffect.fr/#csm-cirrus-internal`
@@ -251,7 +198,6 @@ wrangler kv namespace create CACHE
 # Deploy Worker
 npx wrangler deploy
 
-# Generate frontend and deploy to Pages
 # ⚠️ Always run write_site.py BEFORE wrangler pages deploy
 python3 write_site.py
 npx wrangler pages deploy public --project-name YOUR-PROJECT-NAME
@@ -270,39 +216,38 @@ npx wrangler deploy && python3 write_site.py && npx wrangler pages deploy public
 
 **1. JavaScript backslashes inside Python triple-quoted strings**
 
-`write_site.py` embeds JavaScript inside Python `'''...'''` strings. Every `\` in JavaScript must be doubled in the Python source:
+`write_site.py` embeds JavaScript inside Python `'''...'''` strings. Every `\` in JavaScript must be doubled:
 
 | Write in Python | Produces in JS | Status |
 |---|---|---|
 | `split('\\n')` | `split('\n')` | ✅ correct |
-| `split('\n')` | raw newline character in string | ❌ SyntaxError |
+| `split('\n')` | raw newline in string | ❌ SyntaxError — breaks nav buttons |
 | `replace(/\\d+/g, '')` | `replace(/\d+/g, '')` | ✅ correct |
 
-If nav buttons stop responding after a change: open DevTools → Console → look for `SyntaxError` with a line number. 99% of the time it's an unescaped `\n` or `\d` in a string.
+If nav buttons stop responding: open DevTools → Console → look for `SyntaxError` with a line number.
 
 **2. Always run write_site.py before deploying Pages**
 
-`wrangler pages deploy` uploads whatever is currently in `public/`. If you forget to run `write_site.py` first, you'll deploy a stale version of the frontend while the Worker is already updated. Always use the full one-liner above.
+`wrangler pages deploy` uploads whatever is currently in `public/`. Forgetting to regenerate first deploys a stale frontend while the Worker is already updated.
 
-**3. AI Gateway cache**
+**3. AI Gateway cache during development**
 
-Responses are cached for 3600s. During development, if Cirrus seems to return outdated answers, it may be serving a cached response from AI Gateway. You can disable caching temporarily by setting `skipCache: true` in `src/index.js`.
+Responses are cached for 3600s. If Cirrus returns stale answers during dev, set `skipCache: true` in `src/index.js` temporarily.
 
 **4. Wrangler Pages warning about `pages_build_output_dir`**
 
-You may see this warning when deploying:
 ```
 ▲ [WARNING] Pages now has wrangler.jsonc support... missing "pages_build_output_dir"
 ```
-This is harmless — Wrangler ignores `wrangler.jsonc` for Pages when you pass the directory explicitly via CLI. The deploy succeeds normally.
+Harmless — Wrangler ignores `wrangler.jsonc` for Pages when the directory is passed explicitly via CLI.
 
 **5. Model selection**
 
-`@cf/qwen/qwen3-30b-a3b-fp8` was tested but caused frequent timeouts in production due to model size. Switched to `@cf/meta/llama-3.3-70b-instruct-fp8-fast` which offers a better speed/quality tradeoff for conversational use cases.
+`@cf/qwen/qwen3-30b-a3b-fp8` was tested but caused frequent timeouts in production. Switched to `@cf/meta/llama-3.3-70b-instruct-fp8-fast` for better speed/quality tradeoff on conversational workloads.
 
-**6. Browser language vs message language**
+**6. Browser language detection**
 
-The LLM tends to respond in the browser's UI language rather than the message language if not explicitly instructed. The system prompt enforces: detect language from the current message text only — ignore browser settings, previous messages, and the user's name origin.
+The LLM tends to respond in the browser's UI language rather than the message language if not explicitly constrained. The system prompt enforces: detect language from the current message text only — ignore browser settings, previous messages, and the user's name origin.
 
 ---
 
@@ -313,20 +258,12 @@ The LLM tends to respond in the browser's UI language rather than the message la
 | **Edge-first architecture** | Every component runs across 330+ Cloudflare datacenters — no origin server |
 | **AI at the edge** | LLM inference without GPU provisioning — Workers AI handles it natively |
 | **Stateful edge functions** | Workers KV enables persistent memory across sessions without a traditional database |
-| **AI platform depth** | System prompt covers Workers AI, AI Gateway, AI Search, Vectorize, Agents SDK, AutoRAG, Browser Rendering, MCP, Workflows, Durable Objects |
+| **AI platform depth** | System prompt covers the full Cloudflare AI stack: Workers AI, AI Gateway, AI Search, Vectorize, Agents SDK, AutoRAG, Browser Rendering, MCP, Workflows, Durable Objects |
 | **Zero-infrastructure deployment** | No EC2, no VPS, no Docker, no Kubernetes — just `wrangler deploy` |
 | **Full-stack from one provider** | DNS, CDN, compute, AI inference, caching, storage, monitoring — all Cloudflare |
 | **Multilingual AI** | Language detection and response in 6 languages including ZH and JA |
 | **Real-time data** | RSS feeds from Cloudflare Blog + Changelog parsed and served live via Workers |
 | **CSM tooling** | Hidden Mission Control section demonstrates customer success use cases |
-
----
-
-## Cloudflare Products Count
-
-**Actively deployed:** Pages · Workers · Workers AI · AI Gateway · Workers KV · DNS
-
-**In system prompt knowledge base (30+):** AI Search · Vectorize · Agents SDK · AutoRAG · Browser Rendering · MCP Servers · Workflows · Durable Objects · WAF · DDoS Protection · Bot Management · Page Shield · Zero Trust · Magic Transit · Email Security · Turnstile · Rate Limiting · API Shield · Agile SASE · Web3 · CDN · Argo Smart Routing · Image Optimization · Load Balancing · Waiting Room · R2 · D1 · KV · Queues · Hyperdrive
 
 ---
 
