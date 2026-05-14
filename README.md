@@ -182,8 +182,10 @@ wrangler login
 # Create KV namespace for conversation memory
 wrangler kv namespace create CACHE
 # → copy the returned id into wrangler.jsonc under kv_namespaces
+```
 
-# Configure wrangler.jsonc
+```jsonc
+// wrangler.jsonc
 {
   "name": "your-worker-name",
   "main": "src/index.js",
@@ -191,7 +193,9 @@ wrangler kv namespace create CACHE
   "kv_namespaces": [{ "binding": "CACHE", "id": "YOUR_KV_ID" }],
   "ai": { "binding": "AI" }
 }
+```
 
+```bash
 # Create AI Gateway
 # Dashboard → AI → AI Gateway → create a gateway with id "default"
 
