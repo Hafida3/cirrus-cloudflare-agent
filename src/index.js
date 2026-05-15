@@ -167,26 +167,44 @@ FORMATTING RULES:
 - Never use --- as separator. Use a blank line instead.
  `;
 
-      const response = await env.AI.run(
-        "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
-        {
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: question }
-          ],
-          max_tokens: 2048,
-        },
-        {
-          gateway: {
-            id: "default",
-            skipCache: false,
-            cacheTtl: 3600
+      let response;
+      try {
+        response = await env.AI.run(
+          "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+          {
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: question }
+            ],
+            max_tokens: 2048,
+          },
+          {
+            gateway: {
+              id: "default",
+              skipCache: false,
+              cacheTtl: 3600
+            }
           }
-        }
-      );
+        );
+      } catch (aiError) {
+        const isNeuronsLimit = aiError?.message?.includes('4006') || aiError?.code === 4006;
+        const friendlyAnswer = isNeuronsLimit
+          ? "I'm taking a short break to recharge — Cloudflare's free AI tier has a daily limit and I've hit it for today. Come back tomorrow and I'll be back at full speed, or ask my creator to upgrade to the Workers Paid plan 😄"
+          : "Something went wrong on my end — I couldn't reach the AI model. Please try again in a moment.";
+        return new Response(JSON.stringify({ answer: friendlyAnswer }), {
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        });
+      }
+
+      const rawAnswer = response?.response || response?.result || response?.choices?.[0]?.message?.content || '';
+      if (rawAnswer.includes('4006') || rawAnswer.toLowerCase().includes('neurons')) {
+        return new Response(JSON.stringify({ answer: "I'm taking a short break to recharge — Cloudflare's free AI tier has a daily limit and I've hit it for today. Come back tomorrow and I'll be back at full speed, or ask my creator to upgrade to the Workers Paid plan 😄" }), {
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        });
+      }
 
       return new Response(
-        JSON.stringify({ answer: response.response || response.result || (response.choices && response.choices[0]?.message?.content) || 'No response received.' }),
+        JSON.stringify({ answer: rawAnswer || 'No response received.' }),
         {
           headers: {
             'Content-Type': 'application/json',
