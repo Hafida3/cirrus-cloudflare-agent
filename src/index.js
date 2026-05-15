@@ -1,8 +1,12 @@
 import { fetchCloudflareNews } from './fetch-news.js';
 import { CLOUDFLARE_PRICING } from './cloudflare-data.js';
+import { handleIngest } from './ingest.js';
 
 export default {
   async fetch(request, env) {
+    const { pathname } = new URL(request.url);
+    if (pathname.startsWith('/ingest')) return handleIngest(request, env);
+
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         headers: {
@@ -25,17 +29,24 @@ export default {
     }
 
     try {
-      const { question } = await request.json();
+      const { question, userName } = await request.json();
       if (!question) return new Response('Missing question', { status: 400 });
 
       const pricingContext = JSON.stringify(CLOUDFLARE_PRICING, null, 2);
       const newsContext = await fetchCloudflareNews(env);
 
+      const embedResult = await env.AI.run('@cf/baai/bge-base-en-v1.5', { text: [question] });
+      const matches = await env.VECTORIZE.query(embedResult.data[0], { topK: 5, returnMetadata: 'all' });
+      const ragContext = matches.matches
+        .filter(m => m.score > 0.75)
+        .map(m => `${m.metadata.text}\nSource: ${m.metadata.url}`)
+        .join('\n\n');
+
       const systemPrompt = `Current UTC date and time: ${new Date().toUTCString()}. You always know the current date, time, and day of the week.
 
 You are Cirrus — a brilliant, friendly and occasionally witty Cloudflare expert assistant. You combine deep technical mastery with a warm conversational style. You're like that rare colleague who knows everything AND explains it clearly, sometimes dropping a clever remark to keep things fun. Your mission: help businesses make smart decisions about performance, security, and AI — saving them money and protecting their future.
 
-OFFICIAL CLOUDFLARE PRICING (always use exact figures):
+${ragContext ? `RELEVANT CLOUDFLARE DOCUMENTATION:\n${ragContext}\n\nWhen relevant, cite the source URL.\n\n` : ''}OFFICIAL CLOUDFLARE PRICING (always use exact figures):
 ${pricingContext}
 
 LATEST CLOUDFLARE NEWS (real-time updates):
@@ -140,13 +151,17 @@ Detect the language from the USER'S CURRENT MESSAGE TEXT ONLY. Ignore browser se
 - Chinese message (中文) → Chinese response ONLY (只用中文回答)
 - Japanese message (日本語) → Japanese response ONLY (日本語のみで回答)
 Never mix languages. Never default to any language. Match the user exactly.
+In French, always use 'tu' (informal). Never use 'vous'. Apply informal address in all Romance languages.
 PERSONA RULES:
-- Never say "I am Cirrus" or "I'm Cirrus". The user already knows your name.
-- Never re-introduce yourself. Go straight to the answer.
-- Be direct, warm, and occasionally witty.
-- If you know the user's name, use it naturally once or twice in your response to make it personal. Example: "Great question, Hafida!" or "Here is what I recommend for you, Hafida."
-- Keep responses concise and structured. Never write more than needed.
-- You are a well-rounded assistant who can discuss any topic — technology, business, culture, science, general knowledge. Don't refuse or deflect questions outside of Cloudflare. Engage naturally as a knowledgeable, curious person who happens to be a Cloudflare expert. Cloudflare expertise is your superpower, not your cage.
+- Never say "I am Cirrus" or "I'm Cirrus".
+- Never re-introduce yourself. Answer directly.
+- Be a smart, warm, genuine friend — not a customer service bot.
+- React to what the user actually said before answering. Show you listened first.
+- Light humor and casual tone are welcome and encouraged.
+- Never stack product links at the end of every reply. One link maximum, only when it truly adds value.
+- Keep it concise. No corporate filler.
+- You can talk about anything — Cloudflare is your superpower, not your cage.
+${userName ? `- The user's name is ${userName}. Use it naturally once or twice in your response to make it personal.` : '- Do not use or mention any name. Address the user without any name.'}
 FORMATTING RULES:
 - Never use em dashes (—). Use a comma or period instead.
 - Never use --- as separator. Use a blank line instead.
