@@ -1,6 +1,6 @@
 # cirrus-cloudflare-agent
 
-> A full-stack AI agent built entirely on Cloudflare — no traditional hosting, just a domain.
+> A full-stack AI agent built entirely on Cloudflare — no traditional hosting, just a Domain Name.
 
 🌐 **Live demo**: [focuseffect.fr](https://focuseffect.fr)  
 🔒 **Mission Control** (internal): [focuseffect.fr/#csm-cirrus-internal](https://focuseffect.fr/#csm-cirrus-internal)
@@ -11,7 +11,7 @@
 
 **Cirrus** is an AI-powered web agent that runs 100% on Cloudflare's edge infrastructure. No servers. No traditional hosting. No cloud VMs. Just a domain name and Cloudflare.
 
-It demonstrates that you can build a complete, production-grade application — with persistent memory, real-time AI responses, live data feeds, and a dynamic frontend — using only Cloudflare products.
+It demonstrates that you can build a complete, production-grade application — with persistent memory, real-time AI responses, live data feeds, semantic search, and a dynamic frontend — using only Cloudflare products.
 
 Cirrus is also a multilingual Cloudflare expert that speaks EN, FR, ES, PT, ZH (中文), and JA (日本語). Its system prompt contains deep technical knowledge of 30+ Cloudflare products — spanning the AI platform (Workers AI, AI Gateway, AI Search, Vectorize, Agents SDK, AutoRAG, Browser Rendering, MCP, Workflows, Durable Objects), security (WAF, DDoS, Bot Management, Page Shield, Zero Trust, Turnstile, Rate Limiting, API Shield, Magic Transit), performance (CDN, Argo, Image Optimization, Waiting Room), and the full developer platform (Workers, Pages, R2, D1, KV, Queues, Hyperdrive, Web3) — all with accurate use cases injected at runtime.
 
@@ -22,10 +22,11 @@ Cirrus is also a multilingual Cloudflare expert that speaks EN, FR, ES, PT, ZH (
 | Product | Role | Config |
 |---|---|---|
 | **Cloudflare Pages** | Frontend hosting at the edge. Static site globally distributed. CI/CD via Wrangler CLI. Custom domain auto-configured. | Free tier |
-| **Cloudflare Workers** | The entire Cirrus backend. `POST /` handles AI chat. `GET /` serves live RSS news as structured JSON. | Paid |
-| **Workers AI** | LLM inference at the edge. No GPU provisioning required. | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` · 2048 max tokens |
-| **AI Gateway** | All Workers AI requests routed through it. Handles caching, request logging, and cost monitoring. | id: `default` · Cache TTL: 3600s |
+| **Cloudflare Workers** | The entire Cirrus backend. `POST /` handles AI chat. `GET /` serves live RSS news as structured JSON. `GET /ingest` indexes Cloudflare docs into Vectorize. | Paid |
+| **Workers AI** | LLM inference at the edge. Also used to generate vector embeddings for RAG via `@cf/baai/bge-base-en-v1.5`. No GPU provisioning required. | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` · 2048 max tokens |
+| **AI Gateway** | All Workers AI requests routed through it. Handles caching, rate limiting, request logging, and cost monitoring. | id: `default` · Cache TTL: 3600s · Rate limiting enabled |
 | **Workers KV** | Persistent cross-session conversation memory per user (UUID-keyed). | Binding: `CACHE` · TTL: 7 days · Stores last 3 turns as JSON |
+| **Vectorize** | Vector database for RAG. Stores embeddings of Cloudflare documentation. Queried on every user message to inject relevant doc context into the system prompt. | Index: `cloudflare-docs` · 319 vectors · dimensions: 768 · metric: cosine |
 | **Cloudflare DNS** | Custom domain routing. CNAME auto-created when adding domain in Pages dashboard. | Free |
 
 ---
@@ -65,8 +66,11 @@ Cirrus is also a multilingual Cloudflare expert that speaks EN, FR, ES, PT, ZH (
 │                                                              │
 │  POST / (chat)                      GET / (news)             │
 │  ├─ Read KV memory (userId)         ├─ Fetch CF Blog RSS     │
-│  ├─ Build dynamic system prompt     ├─ Fetch CF Changelog RSS│
-│  │   · 30+ product knowledge base   └─ Return structured JSON│
+│  ├─ Embed question (Workers AI)     ├─ Fetch CF Changelog RSS│
+│  ├─ Query Vectorize (RAG · topK:5)  └─ Return structured JSON│
+│  ├─ Build dynamic system prompt                              │
+│  │   · RAG context from Vectorize                            │
+│  │   · 30+ product knowledge base                           │
 │  │   · Live UTC timestamp                                    │
 │  │   · userName + detected language                          │
 │  ├─ Route through AI Gateway                                 │
@@ -75,14 +79,16 @@ Cirrus is also a multilingual Cloudflare expert that speaks EN, FR, ES, PT, ZH (
 │                                                              │
 │  ┌────────────────────────────────────────────────────────┐  │
 │  │                    AI Gateway                          │  │
-│  │  id: "default" · Cache TTL: 3600s                      │  │
+│  │  id: "default" · Cache TTL: 3600s · Rate limiting      │  │
 │  │  Logs every request · Monitors cost · Caches responses │  │
 │  └───────────────────────┬────────────────────────────────┘  │
 │                          ▼                                   │
 │  ┌────────────────────────────────────────────────────────┐  │
 │  │                    Workers AI                          │  │
 │  │  @cf/meta/llama-3.3-70b-instruct-fp8-fast              │  │
-│  │  System prompt: product knowledge + UTC time + userName│  │
+│  │  @cf/baai/bge-base-en-v1.5 (embeddings for RAG)        │  │
+│  │  System prompt: RAG context + product knowledge        │  │
+│  │  + UTC time + userName                                  │  │
 │  │  Conversation history: last 3 turns from KV            │  │
 │  └────────────────────────────────────────────────────────┘  │
 │                                                              │
@@ -91,6 +97,16 @@ Cirrus is also a multilingual Cloudflare expert that speaks EN, FR, ES, PT, ZH (
 │  │  Binding: CACHE · Key: "conv_" + userId                │  │
 │  │  Value: JSON array of last 3 message pairs             │  │
 │  │  TTL: 7 days · Cross-session persistent memory         │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                                                              │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │                    Vectorize                           │  │
+│  │  Index: cloudflare-docs · 319 vectors · cosine metric  │  │
+│  │  Dimensions: 768 (bge-base-en-v1.5)                    │  │
+│  │  Products indexed: Workers AI · AI Gateway · KV        │  │
+│  │  · Vectorize                                           │  │
+│  │  Metadata: url · title · product · text               │  │
+│  │  Populated via GET /ingest (secret-protected)          │  │
 │  └────────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -101,13 +117,15 @@ Cirrus is also a multilingual Cloudflare expert that speaks EN, FR, ES, PT, ZH (
 
 ### Ask Cirrus (AI Agent)
 - Conversational AI with cross-session memory (localStorage + Workers KV)
+- RAG pipeline: every question is embedded, matched against Vectorize, and answered with real Cloudflare doc context injected into the system prompt
 - Language auto-detection — responds exclusively in the user's language
 - First name detection via regex → stored in localStorage → passed to Worker → used in KV context
 - 5 rotating welcome messages per new conversation
-- Full markdown rendering: `**bold**`, `####` headers in orange, bullet points, line breaks
+- Full markdown rendering: `**bold**`, `####` headers in orange, bullet points, clickable links
 - Em-dash (`—`) auto-replaced in `formatMarkdown()` to avoid rendering artifacts
 - General conversation enabled — Cirrus is not limited to Cloudflare topics
 - Current UTC datetime injected dynamically into every system prompt
+- Graceful error handling: neurons limit and AI failures return friendly messages
 - "Clear chat" button resets localStorage and KV context
 
 ### Cirrus (Manga-Cyborg Mascot)
@@ -159,13 +177,14 @@ Cirrus is also a multilingual Cloudflare expert that speaks EN, FR, ES, PT, ZH (
 ```
 /
 ├── src/
-│   ├── index.js           ← Worker — chat endpoint, news endpoint, KV memory
+│   ├── index.js           ← Worker — chat endpoint, news endpoint, KV memory, RAG
+│   ├── ingest.js          ← Indexing Worker — fetches CF docs, chunks, embeds, inserts into Vectorize
 │   ├── cloudflare-data.js ← Cloudflare product data (export: CLOUDFLARE_PRICING)
 │   └── fetch-news.js      ← RSS parser — Blog + Changelog (export: fetchCloudflareNews)
 ├── public/
 │   └── index.html         ← Generated by write_site.py — do not edit directly
 ├── write_site.py          ← Python script that generates the full frontend
-└── wrangler.jsonc         ← Workers config: KV binding, AI binding, compatibility date
+└── wrangler.jsonc         ← Workers config: KV binding, AI binding, Vectorize binding
 ```
 
 ---
@@ -181,7 +200,13 @@ wrangler login
 
 # Create KV namespace for conversation memory
 wrangler kv namespace create CACHE
-# → copy the returned id into wrangler.jsonc under kv_namespaces
+# Copy the returned id into wrangler.jsonc under kv_namespaces
+
+# Create Vectorize index for RAG
+npx wrangler vectorize create cloudflare-docs --dimensions=768 --metric=cosine
+npx wrangler vectorize create-metadata-index cloudflare-docs --property-name=url --type=string
+npx wrangler vectorize create-metadata-index cloudflare-docs --property-name=title --type=string
+npx wrangler vectorize create-metadata-index cloudflare-docs --property-name=product --type=string
 ```
 
 ```jsonc
@@ -191,18 +216,28 @@ wrangler kv namespace create CACHE
   "main": "src/index.js",
   "compatibility_date": "2024-01-01",
   "kv_namespaces": [{ "binding": "CACHE", "id": "YOUR_KV_ID" }],
-  "ai": { "binding": "AI" }
+  "ai": { "binding": "AI" },
+  "vectorize": [{ "binding": "VECTORIZE", "index_name": "cloudflare-docs" }]
 }
 ```
 
 ```bash
+# Set ingest secret
+npx wrangler secret put INGEST_SECRET
+
 # Create AI Gateway
 # Dashboard → AI → AI Gateway → create a gateway with id "default"
 
 # Deploy Worker
 npx wrangler deploy
 
-# ⚠️ Always run write_site.py BEFORE wrangler pages deploy
+# Populate Vectorize index (run once per product)
+curl "https://YOUR-WORKER.workers.dev/ingest?product=workers-ai" -H "X-Ingest-Secret: YOUR_SECRET"
+curl "https://YOUR-WORKER.workers.dev/ingest?product=ai-gateway" -H "X-Ingest-Secret: YOUR_SECRET"
+curl "https://YOUR-WORKER.workers.dev/ingest?product=vectorize" -H "X-Ingest-Secret: YOUR_SECRET"
+curl "https://YOUR-WORKER.workers.dev/ingest?product=kv" -H "X-Ingest-Secret: YOUR_SECRET"
+
+# Generate and deploy the frontend
 python3 write_site.py
 npx wrangler pages deploy public --project-name YOUR-PROJECT-NAME
 
@@ -253,6 +288,10 @@ Harmless — Wrangler ignores `wrangler.jsonc` for Pages when the directory is p
 
 The LLM tends to respond in the browser's UI language rather than the message language if not explicitly constrained. The system prompt enforces: detect language from the current message text only — ignore browser settings, previous messages, and the user's name origin.
 
+**7. Vectorize neurons cost**
+
+Each user question triggers two Workers AI calls: one embedding (RAG) and one LLM response. The free tier allows 10,000 neurons/day. AI Gateway rate limiting is enabled to prevent abuse.
+
 ---
 
 ## Key Concepts Demonstrated
@@ -261,10 +300,11 @@ The LLM tends to respond in the browser's UI language rather than the message la
 |---|---|
 | **Edge-first architecture** | Every component runs across 330+ Cloudflare datacenters — no origin server |
 | **AI at the edge** | LLM inference without GPU provisioning — Workers AI handles it natively |
+| **RAG pipeline** | Vectorize + Workers AI embeddings provide real doc context on every query |
 | **Stateful edge functions** | Workers KV enables persistent memory across sessions without a traditional database |
 | **AI platform depth** | System prompt covers the full Cloudflare AI stack: Workers AI, AI Gateway, AI Search, Vectorize, Agents SDK, AutoRAG, Browser Rendering, MCP, Workflows, Durable Objects |
 | **Zero-infrastructure deployment** | No EC2, no VPS, no Docker, no Kubernetes — just `wrangler deploy` |
-| **Full-stack from one provider** | DNS, CDN, compute, AI inference, caching, storage, monitoring — all Cloudflare |
+| **Full-stack from one provider** | DNS, CDN, compute, AI inference, vector search, caching, storage, monitoring — all Cloudflare |
 | **Multilingual AI** | Language detection and response in 6 languages including ZH and JA |
 | **Real-time data** | RSS feeds from Cloudflare Blog + Changelog parsed and served live via Workers |
 | **CSM tooling** | Hidden Mission Control section demonstrates customer success use cases |
@@ -272,7 +312,7 @@ The LLM tends to respond in the browser's UI language rather than the message la
 ---
 
 *Built by Hafida — May 2026*  
-*Powered by Cloudflare Workers AI · Hosted on Cloudflare Pages*
+*Powered by Cloudflare Workers AI · Vectorize · Hosted on Cloudflare Pages*
 
 ---
 
