@@ -35,12 +35,15 @@ export default {
       const pricingContext = JSON.stringify(CLOUDFLARE_PRICING, null, 2);
       const newsContext = await fetchCloudflareNews(env);
 
-      const embedResult = await env.AI.run('@cf/baai/bge-base-en-v1.5', { text: [question] });
-      const matches = await env.VECTORIZE.query(embedResult.data[0], { topK: 5, returnMetadata: 'all' });
-      const ragContext = matches.matches
-        .filter(m => m.score > 0.75)
-        .map(m => `${m.metadata.text}\nSource: ${m.metadata.url}`)
-        .join('\n\n');
+      let ragContext = '';
+      try {
+        const embedResult = await env.AI.run('@cf/baai/bge-base-en-v1.5', { text: [question] });
+        const matches = await env.VECTORIZE.query(embedResult.data[0], { topK: 5, returnMetadata: 'all' });
+        ragContext = matches.matches
+          .filter(m => m.score > 0.75)
+          .map(m => `${m.metadata.text}\nSource: ${m.metadata.url}`)
+          .join('\n\n');
+      } catch (_) {}
 
       const systemPrompt = `Current UTC date and time: ${new Date().toUTCString()}. You always know the current date, time, and day of the week.
 
