@@ -26,7 +26,7 @@ Cirrus is also a multilingual Cloudflare expert that speaks EN, FR, ES, PT, ZH (
 | **Workers AI** | LLM inference at the edge. Also used to generate vector embeddings for RAG via `@cf/baai/bge-base-en-v1.5`. No GPU provisioning required. | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` · 2048 max tokens |
 | **AI Gateway** | All Workers AI requests routed through it. Handles caching, rate limiting, request logging, and cost monitoring. | id: `default` · Cache TTL: 3600s · Rate limiting enabled |
 | **Workers KV** | Persistent cross-session conversation memory per user (UUID-keyed). | Binding: `CACHE` · TTL: 7 days · Stores last 3 turns as JSON |
-| **Vectorize** | Vector database for RAG. Stores embeddings of Cloudflare documentation. Queried on every user message to inject relevant doc context into the system prompt. | Index: `cloudflare-docs` · 319 vectors · dimensions: 768 · metric: cosine |
+| **Vectorize** | Vector database for RAG. Stores embeddings of Cloudflare documentation. Queried on every user message to inject relevant doc context into the system prompt. | Index: `cloudflare-docs` · 104 vectors · dimensions: 768 · metric: cosine |
 | **Cloudflare DNS** | Custom domain routing. CNAME auto-created when adding domain in Pages dashboard. | Free |
 
 ---
@@ -101,7 +101,7 @@ Cirrus is also a multilingual Cloudflare expert that speaks EN, FR, ES, PT, ZH (
 │                                                              │
 │  ┌────────────────────────────────────────────────────────┐  │
 │  │                    Vectorize                           │  │
-│  │  Index: cloudflare-docs · 319 vectors · cosine metric  │  │
+│  │  Index: cloudflare-docs · 104 vectors · cosine metric  │  │
 │  │  Dimensions: 768 (bge-base-en-v1.5)                    │  │
 │  │  Products indexed: Workers AI · AI Gateway · KV        │  │
 │  │  · Vectorize                                           │  │
