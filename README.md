@@ -200,13 +200,19 @@ wrangler login
 
 # Create KV namespace for conversation memory
 wrangler kv namespace create CACHE
-# Copy the returned id into wrangler.jsonc under kv_namespaces
 
 # Create Vectorize index for RAG
 npx wrangler vectorize create cloudflare-docs --dimensions=768 --metric=cosine
 npx wrangler vectorize create-metadata-index cloudflare-docs --property-name=url --type=string
 npx wrangler vectorize create-metadata-index cloudflare-docs --property-name=title --type=string
 npx wrangler vectorize create-metadata-index cloudflare-docs --property-name=product --type=string
+```
+
+**`wrangler.jsonc` is gitignored.** Copy the example template and fill in the KV namespace ID returned by the command above:
+
+```bash
+cp wrangler.jsonc.example wrangler.jsonc
+# Then open wrangler.jsonc and replace YOUR_KV_NAMESPACE_ID with the id from the step above
 ```
 
 ```jsonc
