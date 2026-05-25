@@ -2,6 +2,17 @@ import { fetchCloudflareNews } from './fetch-news.js';
 import { CLOUDFLARE_PRICING } from './cloudflare-data.js';
 import { handleIngest } from './ingest.js';
 
+async function isOnCloudflare(domain) {
+  try {
+    const hostname = new URL(domain.startsWith('http') ? domain : 'https://' + domain).hostname;
+    const res = await fetch(`https://cloudflare-dns.com/dns-query?name=${hostname}&type=NS`, {
+      headers: { 'Accept': 'application/dns-json' }
+    });
+    const data = await res.json();
+    return data.Answer?.some(r => r.data?.includes('cloudflare.com')) ?? false;
+  } catch(e) { return false; }
+}
+
 export default {
   async fetch(request, env) {
     const { pathname } = new URL(request.url);
@@ -31,6 +42,10 @@ export default {
     try {
       const { question, userName } = await request.json();
       if (!question) return new Response('Missing question', { status: 400 });
+
+      const urlMatch = question.match(/https?:\/\/[^\s,]+/) || question.match(/(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}[^\s,]*/);
+      let cfStatus = undefined;
+      if (urlMatch) cfStatus = await isOnCloudflare(urlMatch[0]);
 
       const pricingContext = JSON.stringify(CLOUDFLARE_PRICING, null, 2);
       const newsContext = await fetchCloudflareNews(env);
@@ -206,8 +221,10 @@ FORMATTING RULES:
         });
       }
 
+      const responseBody = { answer: rawAnswer || 'No response received.' };
+      if (cfStatus !== undefined) responseBody.isOnCloudflare = cfStatus;
       return new Response(
-        JSON.stringify({ answer: rawAnswer || 'No response received.' }),
+        JSON.stringify(responseBody),
         {
           headers: {
             'Content-Type': 'application/json',
