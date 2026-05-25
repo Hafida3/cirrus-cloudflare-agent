@@ -17,6 +17,16 @@ Cirrus is also a multilingual Cloudflare expert that speaks EN, FR, ES, PT, ZH (
 
 ---
 
+## Meet Cirrus
+
+<p align="center">
+  <img src="cirrus_character.svg" width="160" alt="Cirrus — manga-cyborg AI mascot" />
+</p>
+
+> Cirrus is the AI mascot of this project — a manga-cyborg character with purple eyes, orange hair streaks, and a cyber jacket. Built as an SVG, animated with CSS float and orange glow on the live site.
+
+---
+
 ## Cloudflare Products — Actively Deployed
 
 | Product | Role | Config |
