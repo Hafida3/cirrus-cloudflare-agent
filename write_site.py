@@ -1,6 +1,6 @@
 import os
 
-with open('/Users/haflabghiel/Downloads/cirrus_character.svg') as _f:
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cirrus_character.svg')) as _f:
     _svg_raw = _f.read()
 CIRRUS_SVG = _svg_raw.replace('<svg ', '<svg class="cirrus-char" onclick="showSection(\'agent\')" ', 1)
 
@@ -411,6 +411,7 @@ nav { position: sticky; top: 0; z-index: 100; display: flex; align-items: center
 </div>
 
 <script>
+// Replace with your Worker URL after deploying
 const WORKER_URL = 'https://focuseffect-agent.hafida0203492.workers.dev';
 const STORAGE_KEY = 'cirrus_conversation';
 const USER_KEY = 'cirrus_user';

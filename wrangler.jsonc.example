@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "focuseffect-agent",
+  "main": "src/index.js",
+  "compatibility_date": "2026-05-11",
+  "observability": {
+    "enabled": true
+  },
+  "upload_source_maps": true,
+  "compatibility_flags": ["nodejs_compat"],
+  "kv_namespaces": [
+    {
+      "binding": "CACHE",
+      "id": "YOUR_KV_NAMESPACE_ID"
+    }
+  ],
+  "ai": {
+    "binding": "AI"
+  },
+  "vectorize": [{ "binding": "VECTORIZE", "index_name": "cloudflare-docs" }]
+}
