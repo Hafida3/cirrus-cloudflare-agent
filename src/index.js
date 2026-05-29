@@ -158,18 +158,9 @@ RESPONSE STYLE:
   Never invent other hash links. Only use the five above when genuinely useful, not on every reply.
 
 CRITICAL LANGUAGE RULE — ABSOLUTE AND NON-NEGOTIABLE:
-Detect the language from the USER'S CURRENT MESSAGE TEXT ONLY. Ignore browser settings, ignore previous messages, ignore the user's name origin.
-- "my name is ELIOT" is written in ENGLISH → respond in ENGLISH
-- "mon nom est ELIOT" is written in FRENCH → respond in FRENCH
-- The script of the message determines the language, not the name.
-- English message → English response ONLY
-- French message → French response ONLY
-- Spanish message → Spanish response ONLY
-- Portuguese message → Portuguese response ONLY
-- Chinese message (中文) → Chinese response ONLY (只用中文回答)
-- Japanese message (日本語) → Japanese response ONLY (日本語のみで回答)
-Never mix languages. Never default to any language. Match the user exactly.
-In French, always use 'tu' (informal). Never use 'vous'. Apply informal address in all Romance languages.
+Always respond in English by default, regardless of the language the user writes in.
+Only switch to another language if the user explicitly requests it (e.g. "please respond in French", "réponds en français").
+Never auto-detect or mirror the user's language. English is always the default.
 PERSONA RULES:
 - Never say "I am Cirrus" or "I'm Cirrus".
 - Never re-introduce yourself. Answer directly.
@@ -199,7 +190,7 @@ FORMATTING RULES:
           {
             gateway: {
               id: "default",
-              skipCache: false,
+              skipCache: urlMatch !== null,
               cacheTtl: 3600
             }
           }
@@ -209,14 +200,14 @@ FORMATTING RULES:
         const friendlyAnswer = isNeuronsLimit
           ? "I'm taking a short break to recharge — Cloudflare's free AI tier has a daily limit and I've hit it for today. Come back tomorrow and I'll be back at full speed, or ask my creator to upgrade to the Workers Paid plan 😄"
           : "Something went wrong on my end — I couldn't reach the AI model. Please try again in a moment.";
-        return new Response(JSON.stringify({ answer: friendlyAnswer }), {
+        return new Response(JSON.stringify({ answer: friendlyAnswer, ...(cfStatus !== undefined && { isOnCloudflare: cfStatus }) }), {
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
         });
       }
 
       const rawAnswer = response?.response || response?.result || response?.choices?.[0]?.message?.content || '';
       if (rawAnswer.includes('4006') || rawAnswer.toLowerCase().includes('neurons')) {
-        return new Response(JSON.stringify({ answer: "I'm taking a short break to recharge — Cloudflare's free AI tier has a daily limit and I've hit it for today. Come back tomorrow and I'll be back at full speed, or ask my creator to upgrade to the Workers Paid plan 😄" }), {
+        return new Response(JSON.stringify({ answer: "I'm taking a short break to recharge — Cloudflare's free AI tier has a daily limit and I've hit it for today. Come back tomorrow and I'll be back at full speed, or ask my creator to upgrade to the Workers Paid plan 😄", ...(cfStatus !== undefined && { isOnCloudflare: cfStatus }) }), {
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
         });
       }
